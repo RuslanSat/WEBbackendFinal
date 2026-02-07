@@ -1,0 +1,352 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Game Details</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet" />
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Poppins:wght@600;700&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Rounded:opsz,wght,FILL,GRAD@24,500,0,0" rel="stylesheet">
+  <link rel="stylesheet" href="style.css" />
+  <style>
+    /* Game details: gold-themed star rating */
+    .gd-star {
+      font-size: 28px;
+      line-height: 1;
+      color: #a8b0bf;
+      text-shadow: none;
+      transition: transform .12s ease, color .12s ease, filter .12s ease;
+      padding: 0 4px;
+      border-radius: 6px;
+    }
+    .gd-star:hover {
+      color: #f5d774;
+      transform: translateY(-1px) scale(1.05);
+      text-shadow: none;
+    }
+    .gd-star.active {
+      color: #d4af37;
+      text-shadow: none;
+    }
+    .gd-star:focus-visible {
+      outline: none;
+      box-shadow: 0 0 0 2px rgba(212,175,55,0.55), 0 0 0 6px rgba(212,175,55,0.18);
+    }
+    body.night-theme .gd-star { color: #aeb6c7; }
+    body.day-theme .gd-star { color: #6b7280; }
+    body.day-theme .gd-star.active { color: #b8860b; text-shadow: none; }
+  </style>
+</head>
+<body>
+<nav class="navbar navbar-expand-lg navbar-dark bg-dark">
+  <div class="container-fluid">
+    <a class="navbar-brand d-flex align-items-center fw-bold" href="index.html">
+      <img src="images/Minegoldlogo.png" width="50" height="50" class="me-2" alt="GoldMine Logo">
+      <span class="brand-text">GoldMine</span>
+    </a>
+    <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav"><span class="navbar-toggler-icon"></span></button>
+    <div class="collapse navbar-collapse" id="navbarNav">
+      <ul class="navbar-nav ms-auto align-items-lg-center">
+        <li class="nav-item"><a class="nav-link" href="index.html">Home</a></li>
+        <li class="nav-item"><a class="nav-link" href="Gamelist.html">Browse</a></li>
+      </ul>
+    </div>
+  </div>
+</nav>
+
+<main class="container-fluid p-0">
+  <header class="position-relative" id="gd-banner" style="height: 360px; background:#0c0e13;">
+    <img id="gd-banner-img" alt="Game banner" style="width:100%;height:100%;object-fit:cover;display:none;"/>
+    <div class="position-absolute top-0 start-0 w-100 h-100" style="background:linear-gradient(180deg, rgba(0,0,0,0.35) 0%, rgba(0,0,0,0.65) 55%, #0f1117 100%)"></div>
+    <div class="position-absolute bottom-0 start-0 end-0 p-3 p-md-4">
+      <h1 id="gd-title" class="m-0" style="font-family:Poppins,Inter,sans-serif;font-weight:700;color:#d4af37;"></h1>
+      <div id="gd-badges" class="d-flex flex-wrap gap-2 mt-2"></div>
+    </div>
+  </header>
+
+  <section class="container py-4">
+    <div id="gd-alert" class="alert alert-warning d-none" role="alert"></div>
+    <div class="row g-4">
+      <div class="col-lg-8">
+        <div class="card p-3">
+          <h3 class="h5 mb-3 text-gold">Overview</h3>
+          <div id="gd-desc" class="mb-3"></div>
+          <div class="row g-3" id="gd-meta"></div>
+          <div class="row g-3 mt-1" id="gd-extra"></div>
+          <div id="gd-genres" class="mt-3"></div>
+        </div>
+        <div class="card p-3 mt-3">
+          <h3 class="h6 mb-2 text-gold">Your rating</h3>
+          <div id="gd-user-rating" class="d-flex align-items-center gap-2" role="radiogroup" aria-label="Your rating">
+            <button type="button" class="gd-star btn btn-link p-0" data-value="1" aria-label="1 star">★</button>
+            <button type="button" class="gd-star btn btn-link p-0" data-value="2" aria-label="2 stars">★</button>
+            <button type="button" class="gd-star btn btn-link p-0" data-value="3" aria-label="3 stars">★</button>
+            <button type="button" class="gd-star btn btn-link p-0" data-value="4" aria-label="4 stars">★</button>
+            <button type="button" class="gd-star btn btn-link p-0" data-value="5" aria-label="5 stars">★</button>
+            <small id="gd-user-rating-text" class="text-muted ms-2"></small>
+          </div>
+        </div>
+        <div class="card p-3 mt-3">
+          <h3 class="h5 mb-3 text-gold">Media</h3>
+          <div class="row g-3" id="gd-screens"></div>
+          <div class="row g-3 mt-2" id="gd-videos"></div>
+          <div id="gd-media-empty" class="text-muted small d-none">No media available</div>
+        </div>
+        
+      </div>
+      <div class="col-lg-4">
+        <div class="card p-3">
+          <h3 class="h6 mb-2 text-gold">Where to buy</h3>
+          <div id="gd-stores" class="d-flex flex-wrap gap-2"></div>
+          <div id="gd-stores-empty" class="text-muted small d-none">No store links available</div>
+          <div class="mt-3 d-flex gap-2 flex-wrap">
+            <a id="gd-website" href="#" target="_blank" rel="noopener" class="btn btn-primary btn-sm d-none">Website</a>
+            <a id="gd-metacritic" href="#" target="_blank" rel="noopener" class="btn btn-outline-success btn-sm d-none">Metacritic</a>
+            <a id="gd-reddit" href="#" target="_blank" rel="noopener" class="btn btn-outline-secondary btn-sm d-none">Reddit</a>
+            <a id="gd-rawg" href="#" target="_blank" rel="noopener" class="btn btn-outline-warning btn-sm d-none">Open on RAWG</a>
+          </div>
+        </div>
+        <div class="card p-3 mt-3">
+          <div class="d-flex justify-content-between align-items-center mb-2">
+            <h3 class="h5 m-0 text-gold">Achievements</h3>
+            <button id="gd-ach-more" class="btn btn-sm btn-outline-secondary d-none" type="button">Load more</button>
+          </div>
+          <div id="gd-ach-empty" class="text-muted small d-none">No achievements found</div>
+          <div id="gd-ach-list" class="list-group list-group-flush"></div>
+        </div>
+      </div>
+    </div>
+  </section>
+</main>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+<script src="script.js"></script>
+<script>
+(function(){
+  const APIKEY = (typeof window.APIKEY !== 'undefined' && window.APIKEY) ? window.APIKEY : (localStorage.getItem('rawg.key') || '');
+  const qs = new URLSearchParams(window.location.search);
+  const id = qs.get('id') || qs.get('slug') || '';
+  if (!APIKEY || !id) {
+    document.getElementById('gd-alert').classList.remove('d-none');
+    document.getElementById('gd-alert').textContent = !APIKEY ? 'RAWG API key missing.' : 'Game id missing.';
+    return;
+  }
+  function $(id){return document.getElementById(id)}
+  async function jget(url){ const r = await fetch(url); if(!r.ok) throw new Error('HTTP '+r.status); return r.json(); }
+  async function getDetails(){
+    const url = new URL('https://api.rawg.io/api/games/'+encodeURIComponent(id));
+    url.searchParams.set('key', APIKEY);
+    return jget(url);
+  }
+  async function getShots(){ const u=new URL(`https://api.rawg.io/api/games/${encodeURIComponent(id)}/screenshots`); u.searchParams.set('key',APIKEY); return jget(u); }
+  async function getVideos(){ const u=new URL(`https://api.rawg.io/api/games/${encodeURIComponent(id)}/movies`); u.searchParams.set('key',APIKEY); return jget(u); }
+  async function getStores(){ const u=new URL(`https://api.rawg.io/api/games/${encodeURIComponent(id)}/stores`); u.searchParams.set('key',APIKEY); return jget(u); }
+  async function getAllStores(page=1){ const u=new URL('https://api.rawg.io/api/stores'); u.searchParams.set('key',APIKEY); u.searchParams.set('page',page); u.searchParams.set('page_size','40'); return jget(u); }
+  async function getAchievements(page=1, page_size=20){ const u=new URL(`https://api.rawg.io/api/games/${encodeURIComponent(id)}/achievements`); u.searchParams.set('key',APIKEY); u.searchParams.set('page',page); u.searchParams.set('page_size',String(page_size)); return jget(u); }
+  function unwrapRedirect(href){ try{ const u=new URL(href); if(u.pathname.includes('redirect') && u.searchParams.get('url')){ return decodeURIComponent(u.searchParams.get('url')); } }catch(_){} return href; }
+
+  (async function(){
+    try{
+      const d = await getDetails();
+      // Banner & title
+      $('gd-title').textContent = d.name || d.slug || 'Game';
+      const b = $('gd-banner-img');
+      const src = d.background_image || d.background_image_additional || '';
+      if (src) { b.src = src; b.style.display = ''; }
+      // Badges
+      const badges = [];
+      if (d.rating!=null) badges.push(`<span class="badge bg-warning text-dark">★ ${d.rating}</span>`);
+      if (d.metacritic!=null) badges.push(`<span class="badge bg-success">Metacritic ${d.metacritic}</span>`);
+      if (d.released) badges.push(`<span class="badge bg-secondary">${d.released}</span>`);
+      const plats = Array.isArray(d.platforms)? d.platforms.map(p=>p.platform?.name).filter(Boolean):[];
+      if (plats.length) badges.push(...plats.slice(0,6).map(n=>`<span class="badge bg-dark">${n}</span>`));
+      $('gd-badges').innerHTML = badges.join(' ');
+      // Overview
+      $('gd-desc').innerHTML = d.description || '';
+      const meta=[];
+      if (d.playtime) meta.push(`<div class="col-6"><strong>Playtime:</strong> ${d.playtime}h</div>`);
+      if (d.ratings_count!=null) meta.push(`<div class="col-6"><strong>Ratings:</strong> ${d.ratings_count}</div>`);
+      if (d.screenshots_count!=null) meta.push(`<div class="col-6"><strong>Screenshots:</strong> ${d.screenshots_count}</div>`);
+      if (d.movies_count!=null) meta.push(`<div class="col-6"><strong>Trailers:</strong> ${d.movies_count}</div>`);
+      $('gd-meta').innerHTML = meta.join('');
+      const extra=[];
+      if (d.esrb_rating?.name) extra.push(`<div class="col-12"><strong>ESRB:</strong> ${d.esrb_rating.name}</div>`);
+      let reqMin='', reqRec='';
+      const pc = Array.isArray(d.platforms) ? d.platforms.find(p=> (p.platform?.slug||'').toLowerCase()==='pc') : null;
+      if (pc && pc.requirements){ reqMin=pc.requirements.minimum||''; reqRec=pc.requirements.recommended||''; }
+      if (reqMin||reqRec){ extra.push(`<div class="col-12"><strong>PC Requirements:</strong></div>`); if(reqMin) extra.push(`<div class="col-12 small"><em>Minimum:</em> ${reqMin}</div>`); if(reqRec) extra.push(`<div class="col-12 small"><em>Recommended:</em> ${reqRec}</div>`); }
+      $('gd-extra').innerHTML = extra.join('');
+      // Genres
+      const genres = Array.isArray(d.genres)? d.genres.map(g=>g.name).filter(Boolean):[];
+      if (genres.length){
+        const chips = genres.map(n=>`<span class="badge bg-dark border border-warning text-warning">${n}</span>`).join(' ');
+        $('gd-genres').innerHTML = `<h3 class="h6 mb-2 text-gold">Genres</h3><div class="d-flex flex-wrap gap-2">${chips}</div>`;
+      }
+      // external links
+      if (d.website){ const x=$('gd-website'); x.href=d.website; x.classList.remove('d-none'); }
+      if (d.metacritic_url || d.metacritic){ const x=$('gd-metacritic'); x.href = d.metacritic_url || 'https://www.metacritic.com/'; x.classList.remove('d-none'); }
+      if (d.reddit_url){ const u = d.reddit_url.startsWith('http')? d.reddit_url : ('https://www.reddit.com/'+d.reddit_url.replace(/^\/+/,'')); const x=$('gd-reddit'); x.href=u; x.classList.remove('d-none'); }
+      if (d.slug){ const x=$('gd-rawg'); x.href='https://rawg.io/games/'+d.slug; x.classList.remove('d-none'); }
+      // media
+      const [sc,mv] = await Promise.allSettled([getShots(), getVideos()]);
+      let anyMedia=false;
+      if (sc.status==='fulfilled'){
+        const items=Array.isArray(sc.value?.results)? sc.value.results:[];
+        if (items.length){
+          window.__rawgShots = items.map(s=>s.image).filter(Boolean);
+          $('gd-screens').innerHTML = items.slice(0,12).map((s,i)=>`<div class="col-6 col-md-4"><img class="img-fluid rounded gd-shot" data-idx="${i}" src="${s.image}" alt="Screenshot"/></div>`).join('');
+          anyMedia=true;
+        }
+      }
+      if (mv.status==='fulfilled'){
+        const items=Array.isArray(mv.value?.results)? mv.value.results:[];
+        if (items.length){
+          $('gd-videos').innerHTML = items.slice(0,4).map(v=>{
+            const data = v?.data || {};
+            const mp4 = data.max || data['720'] || data['480'] || '';
+            const thumb = v?.preview || '';
+            if (mp4){
+              return `<div class="col-12"><div class="ratio ratio-16x9 rounded overflow-hidden"><video controls preload="metadata" src="${mp4}" poster="${thumb || ''}"></video></div></div>`;
+            }
+            const rawgLink = (typeof d!=='undefined' && d?.slug) ? `https://rawg.io/games/${d.slug}` : '#';
+            return `<div class="col-12"><a class="d-block ratio ratio-16x9 rounded overflow-hidden" href="${rawgLink}" target="_blank" rel="noopener"><img src="${thumb}" alt="Trailer preview" class="w-100 h-100 object-fit-cover"></a></div>`;
+          }).join('');
+          anyMedia=true;
+        }
+      }
+      if (!anyMedia) $('gd-media-empty').classList.remove('d-none');
+      // Achievements
+      let achNext = null;
+      const achList = $('gd-ach-list');
+      const achEmpty = $('gd-ach-empty');
+      const achMoreBtn = $('gd-ach-more');
+      async function loadAchievements(url){
+        try{
+          let data;
+          if (typeof url === 'string' && url){
+            const r = await fetch(url); if(!r.ok) throw new Error('HTTP '+r.status); data = await r.json();
+          } else {
+            data = await getAchievements(1, 20);
+          }
+          const items = Array.isArray(data.results)? data.results:[];
+          achNext = data.next || null;
+          if (!items.length && achList && !achList.children.length){ achEmpty.classList.remove('d-none'); return; }
+          const html = items.map(a=>{
+            const img = a.image || 'images/placeholder-game.png';
+            const name = a.name || 'Achievement';
+            const desc = a.description || '';
+            const pct = a.percent ? `${a.percent}%` : '';
+            return `<div class="list-group-item bg-dark text-light border-secondary">
+              <div class="d-flex align-items-center">
+                <img src="${img}" alt="${name}" width="56" height="56" class="rounded me-3" onerror="this.src='images/placeholder-game.png'"/>
+                <div class="flex-grow-1">
+                  <div class="d-flex justify-content-between align-items-center">
+                    <strong>${name}</strong>
+                    ${pct ? `<span class=\"badge bg-secondary\">${pct}</span>` : ''}
+                  </div>
+                  ${desc ? `<div class=\"small text-muted\">${desc}</div>` : ''}
+                </div>
+              </div>
+            </div>`;
+          }).join('');
+          achList.insertAdjacentHTML('beforeend', html);
+          if (achMoreBtn){ achMoreBtn.classList.toggle('d-none', !achNext); }
+        }catch(_){ if (achEmpty) achEmpty.classList.remove('d-none'); }
+      }
+      await loadAchievements(null);
+      if (achMoreBtn){ achMoreBtn.onclick = ()=>{ if (achNext) loadAchievements(achNext); } }
+      // stores
+      const storesCache = new Map();
+      try{
+        let page=1, next=null;
+        do { const res = await getAllStores(page); (res.results||[]).forEach(s=> storesCache.set(String(s.id), s)); next=res.next; page+=1; } while(next && page<=5);
+      }catch(_){}
+      try{
+        const st = await getStores();
+        const items = Array.isArray(st?.results) ? st.results : [];
+        if (items.length){
+          $('gd-stores').innerHTML = items.map(s=>{
+            const meta = s.store ? storesCache.get(String(s.store.id||s.store_id)) : storesCache.get(String(s.store_id));
+            let href = unwrapRedirect(s.url||''); if (!href && meta?.domain) href = 'https://'+meta.domain;
+            const name = (s.store && s.store.name) || meta?.name || 'Store';
+            return `<a class="badge bg-secondary" target="_blank" rel="noopener" href="${href}">${name}</a>`
+          }).join(' ');
+        } else { $('gd-stores-empty').classList.remove('d-none'); }
+      }catch(_){ $('gd-stores-empty').classList.remove('d-none'); }
+    }catch(err){
+      const a = $('gd-alert'); a.classList.remove('d-none'); a.textContent = 'Failed to load game details';
+    }
+  })();
+
+  // User rating (5-star) with localStorage persistence
+  (function(){
+    const qs = new URLSearchParams(window.location.search);
+    const id = qs.get('id') || qs.get('slug') || '';
+    const wrap = document.getElementById('gd-user-rating');
+    const label = document.getElementById('gd-user-rating-text');
+    if (!wrap || !id) return;
+    const key = 'rawg.rating.'+id;
+    function get(){ try{ const v = Number(localStorage.getItem(key)||'0'); return (v>=1 && v<=5)? v:0; }catch(_){ return 0; } }
+    function set(v){ try{ localStorage.setItem(key, String(v)); }catch(_){} }
+    function render(v){
+      const stars = wrap.querySelectorAll('.gd-star');
+      stars.forEach((btn,i)=>{ btn.classList.toggle('active', i < v); });
+      label.textContent = v ? (`Rated ${v}/5`) : 'Not rated';
+    }
+    let current = get(); render(current);
+    wrap.addEventListener('click', function(e){
+      const b = e.target.closest('.gd-star'); if (!b) return;
+      const v = Number(b.getAttribute('data-value'))||0;
+      current = (v===current)? 0 : v; set(current); render(current);
+    });
+    wrap.addEventListener('mouseover', function(e){
+      const b = e.target.closest('.gd-star'); if (!b) return;
+      const v = Number(b.getAttribute('data-value'))||0; render(v);
+    });
+    wrap.addEventListener('mouseleave', function(){ render(current); });
+  })();
+
+  // Lightbox for game page screenshots
+  (function(){
+    const lb = document.createElement('div');
+    lb.id = 'rawgLightbox';
+    lb.className = 'rawg-lightbox d-none'; lb.setAttribute('aria-hidden','true'); lb.setAttribute('role','dialog');
+    lb.innerHTML = `
+      <div class="rawg-lightbox-backdrop"></div>
+      <button class="rawg-lightbox-close" aria-label="Close">×</button>
+      <button class="rawg-lightbox-prev" aria-label="Previous">‹</button>
+      <button class="rawg-lightbox-next" aria-label="Next">›</button>
+      <div class="rawg-lightbox-stage"><img id="rawgLightboxImg" alt="Screenshot" /><div id="rawgLightboxCaption" class="rawg-lightbox-caption"></div></div>
+      <div class="rawg-lightbox-zoom-hint">Double click to zoom • Mouse wheel to zoom • Drag to pan</div>
+      <div class="rawg-lightbox-counter"><span id="rawgLbIdx">1</span>/<span id="rawgLbTotal">1</span></div>`;
+    document.body.appendChild(lb);
+    const imgEl = document.getElementById('rawgLightboxImg');
+    const idxEl = document.getElementById('rawgLbIdx');
+    const totalEl = document.getElementById('rawgLbTotal');
+    const prevBtn = lb.querySelector('.rawg-lightbox-prev');
+    const nextBtn = lb.querySelector('.rawg-lightbox-next');
+    const closeBtn = lb.querySelector('.rawg-lightbox-close');
+    let shots = []; let idx=0; let scale=1; let origin={x:0,y:0}; let dragging=false; let last={x:0,y:0};
+    function setTransform(){ imgEl.style.transform = `translate(${origin.x}px, ${origin.y}px) scale(${scale})`; }
+    function update(){ if(!shots.length) return; imgEl.src = shots[idx]; if(idxEl) idxEl.textContent=String(idx+1); if(totalEl) totalEl.textContent=String(shots.length); scale=1; origin={x:0,y:0}; imgEl.style.transform=''; lb.classList.remove('rawg-lightbox-zoomed'); }
+    function open(i){ shots = Array.isArray(window.__rawgShots)? window.__rawgShots.slice():[]; if(!shots.length) return; idx = Math.max(0, Math.min(i||0, shots.length-1)); update(); lb.classList.remove('d-none'); lb.setAttribute('aria-hidden','false'); }
+    function close(){ lb.classList.add('d-none'); lb.setAttribute('aria-hidden','true'); }
+    function prev(){ idx = (idx-1+shots.length)%shots.length; update(); }
+    function next(){ idx = (idx+1)%shots.length; update(); }
+    document.addEventListener('click', function(ev){ const t = ev.target.closest('img.gd-shot'); if(!t) return; const i = Number(t.getAttribute('data-idx')||'0'); open(i); });
+    prevBtn.addEventListener('click', prev); nextBtn.addEventListener('click', next); closeBtn.addEventListener('click', close);
+    lb.addEventListener('click', e=>{ if (e.target.classList.contains('rawg-lightbox-backdrop')) close(); });
+    document.addEventListener('keydown', e=>{ if(lb.classList.contains('d-none')) return; if(e.key==='Escape') close(); if(e.key==='ArrowLeft') prev(); if(e.key==='ArrowRight') next(); });
+    imgEl.addEventListener('dblclick', ()=>{ if(scale===1){ scale=2; lb.classList.add('rawg-lightbox-zoomed'); } else { scale=1; lb.classList.remove('rawg-lightbox-zoomed'); origin={x:0,y:0}; } setTransform(); });
+    imgEl.addEventListener('wheel', e=>{ e.preventDefault(); const d=e.deltaY<0?0.1:-0.1; scale=Math.max(1, Math.min(4, scale+d)); lb.classList.toggle('rawg-lightbox-zoomed', scale>1); setTransform(); }, {passive:false});
+    imgEl.addEventListener('mousedown', e=>{ if(scale===1) return; dragging=true; last={x:e.clientX,y:e.clientY}; imgEl.style.cursor='grabbing'; });
+    window.addEventListener('mousemove', e=>{ if(!dragging) return; origin.x += (e.clientX-last.x); origin.y += (e.clientY-last.y); last={x:e.clientX,y:e.clientY}; setTransform(); });
+    window.addEventListener('mouseup', ()=>{ if(!dragging) return; dragging=false; imgEl.style.cursor='grab'; });
+  })();
+})();
+</script>
+<!-- Lightbox uses global styles already defined in style.css -->
+</body>
+</html>
