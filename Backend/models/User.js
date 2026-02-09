@@ -38,25 +38,17 @@ const UserSchema = new mongoose.Schema({
   }
 });
 
-// Pre-save middleware to hash password
-UserSchema.pre('save', async function(next) {
-  // Only hash the password if it has been modified (or is new)
-  if (!this.isModified('password')) return next();
-  
-  try {
-    // Hash password with cost factor of 12
-    const salt = await bcrypt.genSalt(12);
-    this.password = await bcrypt.hash(this.password, salt);
-    next();
-  } catch (error) {
-    next(error);
-  }
-});
-
-// Pre-save middleware to update updatedAt
-UserSchema.pre('save', function(next) {
+// Pre-save middleware to hash password and update timestamps
+UserSchema.pre('save', async function() {
+  // Update timestamp
   this.updatedAt = Date.now();
-  next();
+  
+  // Only hash the password if it has been modified (or is new)
+  if (!this.isModified('password')) return;
+  
+  // Hash password with cost factor of 12
+  const salt = await bcrypt.genSalt(12);
+  this.password = await bcrypt.hash(this.password, salt);
 });
 
 // Method to compare password for login

@@ -30,6 +30,10 @@ app.get('/', (req, res) => {
   res.sendFile(path.join(__dirname, '../Public/index.html'));
 });
 
+// API Routes
+app.use('/api/users', require('./routes/users'));
+app.use('/api/news', require('./routes/news'));
+
 // API Routes placeholder
 app.get('/api/health', (req, res) => {
   res.json({ status: 'Server is running', timestamp: new Date().toISOString() });
