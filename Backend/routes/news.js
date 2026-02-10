@@ -90,6 +90,14 @@ router.post('/', auth, async (req, res) => {
       });
     }
     
+    // Check if user is author or admin
+    if (req.user.role !== 'author' && req.user.role !== 'admin') {
+      return res.status(403).json({
+        success: false,
+        message: 'Only authors and admins can create news'
+      });
+    }
+    
     // Create news
     const news = new News({
       title,
@@ -259,11 +267,19 @@ router.put('/:id/publish', auth, async (req, res) => {
       });
     }
     
-    // Check if user is the author or admin
+    // Check if user is author or admin
     if (news.author.toString() !== req.user.id && req.user.role !== 'admin') {
       return res.status(403).json({
         success: false,
         message: 'Not authorized to publish this news'
+      });
+    }
+    
+    // Check if user has author role to publish
+    if (req.user.role !== 'author' && req.user.role !== 'admin') {
+      return res.status(403).json({
+        success: false,
+        message: 'Only authors and admins can publish news'
       });
     }
     

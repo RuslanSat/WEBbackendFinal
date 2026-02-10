@@ -216,6 +216,63 @@ router.put('/profile', auth, async (req, res) => {
   }
 });
 
+// PUT /api/users/:id/role - Update user role (admin only)
+router.put('/:id/role', auth, async (req, res) => {
+  try {
+    const { role } = req.body;
+    const targetUserId = req.params.id;
+    
+    // Check if requester is admin
+    if (req.user.role !== 'admin') {
+      return res.status(403).json({
+        success: false,
+        message: 'Only admins can update user roles'
+      });
+    }
+    
+    // Validate role
+    if (!['user', 'author', 'admin'].includes(role)) {
+      return res.status(400).json({
+        success: false,
+        message: 'Invalid role. Must be: user, author, or admin'
+      });
+    }
+    
+    // Update user role
+    const updatedUser = await User.findByIdAndUpdate(
+      targetUserId,
+      { role },
+      { new: true, runValidators: true }
+    ).select('-password');
+    
+    if (!updatedUser) {
+      return res.status(404).json({
+        success: false,
+        message: 'User not found'
+      });
+    }
+    
+    res.status(200).json({
+      success: true,
+      message: 'User role updated successfully',
+      data: {
+        id: updatedUser._id,
+        username: updatedUser.username,
+        email: updatedUser.email,
+        role: updatedUser.role,
+        createdAt: updatedUser.createdAt,
+        updatedAt: updatedUser.updatedAt
+      }
+    });
+  } catch (error) {
+    console.error('Error updating user role:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Server error while updating user role'
+    });
+  }
+});
+
 // GET /api/users/profile - Fetch logged-in user profile
 router.get('/profile', auth, async (req, res) => {
   try {
