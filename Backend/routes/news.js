@@ -43,6 +43,53 @@ router.get('/', async (req, res) => {
   }
 });
 
+router.get('/mine', auth, async (req, res) => {
+  try {
+    if (req.user.role !== 'author' && req.user.role !== 'admin') {
+      return res.status(403).json({
+        success: false,
+        message: 'Only authors and admins can view own news'
+      });
+    }
+
+    const { page = 1, limit = 10, game, published } = req.query;
+
+    const query = { author: req.user.id };
+    if (typeof published !== 'undefined') {
+      if (published === 'true') query.publishedAt = { $ne: null };
+      if (published === 'false') query.publishedAt = null;
+    }
+    if (game) {
+      query.game = new RegExp(game, 'i');
+    }
+
+    const news = await News.find(query)
+      .populate('author', 'username')
+      .sort({ updatedAt: -1 })
+      .limit(Number(limit) * 1)
+      .skip((Number(page) - 1) * Number(limit));
+
+    const total = await News.countDocuments(query);
+
+    res.status(200).json({
+      success: true,
+      data: news,
+      pagination: {
+        page: Number(page),
+        limit: Number(limit),
+        total,
+        pages: Math.ceil(total / Number(limit))
+      }
+    });
+  } catch (error) {
+    console.error('Error fetching own news:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Server error while fetching own news'
+    });
+  }
+});
+
 // GET /api/news/:id - Get single news by ID
 router.get('/:id', async (req, res) => {
   try {
