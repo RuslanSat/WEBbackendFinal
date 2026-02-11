@@ -144,15 +144,183 @@ $input.on('keydown', function (e) {
 });
 
 document.addEventListener('DOMContentLoaded', function () {
+    // JWT Token Management
+    window.authManager = {
+        // Get stored token
+        getToken: function() {
+            return localStorage.getItem('authToken');
+        },
+        
+        // Get stored user data
+        getUser: function() {
+            const userStr = localStorage.getItem('user');
+            return userStr ? JSON.parse(userStr) : null;
+        },
+        
+        // Check if user is authenticated
+        isAuthenticated: function() {
+            return !!this.getToken();
+        },
+        
+        // Logout user
+        logout: function() {
+            localStorage.removeItem('authToken');
+            localStorage.removeItem('user');
+            window.location.href = 'auth.html';
+        },
+        
+        // Update UI based on auth status
+        updateAuthUI: function() {
+            const user = this.getUser();
+            const navbar = document.querySelector('.navbar-nav.ms-auto');
+            
+            if (user && navbar) {
+                // Remove existing auth-related items
+                const existingAuthItems = navbar.querySelectorAll('.auth-item');
+                existingAuthItems.forEach(item => item.remove());
+                
+                // Add user menu
+                const userLi = document.createElement('li');
+                userLi.className = 'nav-item dropdown auth-item';
+                
+                const userLink = document.createElement('a');
+                userLink.className = 'nav-link dropdown-toggle';
+                userLink.href = '#';
+                userLink.role = 'button';
+                userLink.setAttribute('data-bs-toggle', 'dropdown');
+                userLink.textContent = `👤 ${user.username}`;
+                
+                const dropdown = document.createElement('ul');
+                dropdown.className = 'dropdown-menu';
+                
+                const profileItem = document.createElement('li');
+                const profileLink = document.createElement('a');
+                profileLink.className = 'dropdown-item';
+                profileLink.href = '#';
+                profileLink.textContent = 'Profile';
+                
+                const logoutItem = document.createElement('li');
+                const logoutLink = document.createElement('a');
+                logoutLink.className = 'dropdown-item';
+                logoutLink.href = '#';
+                logoutLink.textContent = 'Logout';
+                logoutLink.addEventListener('click', (e) => {
+                    e.preventDefault();
+                    this.logout();
+                });
+                
+                profileItem.appendChild(profileLink);
+                logoutItem.appendChild(logoutLink);
+                dropdown.appendChild(profileItem);
+                dropdown.appendChild(logoutItem);
+                
+                userLi.appendChild(userLink);
+                userLi.appendChild(dropdown);
+                
+                // Insert before the date-time element
+                const dateTimeElement = document.getElementById('navbar-date-time');
+                if (dateTimeElement) {
+                    navbar.insertBefore(userLi, dateTimeElement.parentElement);
+                } else {
+                    navbar.appendChild(userLi);
+                }
+                
+                // Remove or update auth link
+                const authLink = navbar.querySelector('a[href="register.html"], a[href="login.html"]');
+                if (authLink) {
+                    authLink.remove();
+                }
+            }
+        }
+    };
 
-    // Form Validation
-    const registrationForm = document.getElementById('assignment-registration-form');
+    // Initialize auth UI on page load
+    window.authManager.updateAuthUI();
+
+    // API Error Handler
+    function handleApiError(error, formType = 'registration') {
+        console.error(`${formType} error:`, error);
+        
+        if (error.response) {
+            // Server responded with error status
+            const status = error.response.status;
+            const message = error.response.data?.message || 'Server error occurred';
+            
+            switch (status) {
+                case 400:
+                    // Bad Request - validation errors
+                    if (message.includes('email')) {
+                        document.getElementById(`${formType === 'registration' ? 'reg' : 'login'}-email-error`).textContent = message;
+                    } else if (message.includes('username') && formType === 'registration') {
+                        document.getElementById('reg-username-error').textContent = message;
+                    } else if (message.includes('password')) {
+                        document.getElementById(`${formType === 'registration' ? 'reg' : 'login'}-password-error`).textContent = message;
+                    } else {
+                        alert(message);
+                    }
+                    break;
+                case 401:
+                    // Unauthorized - invalid credentials
+                    document.getElementById(`${formType === 'registration' ? 'reg' : 'login'}-password-error`).textContent = message;
+                    break;
+                case 409:
+                    // Conflict - user already exists
+                    if (message.includes('email')) {
+                        document.getElementById(`${formType === 'registration' ? 'reg' : 'login'}-email-error`).textContent = message;
+                    } else if (message.includes('username') && formType === 'registration') {
+                        document.getElementById('reg-username-error').textContent = message;
+                    } else {
+                        alert(message);
+                    }
+                    break;
+                case 500:
+                    // Internal Server Error
+                    alert('Server error. Please try again later.');
+                    break;
+                default:
+                    alert(message || 'An error occurred. Please try again.');
+            }
+        } else if (error.request) {
+            // Network error - no response received
+            alert('Network error. Please check your internet connection and try again.');
+        } else {
+            // Other error
+            alert('An unexpected error occurred. Please try again.');
+        }
+    }
+
+    // Form Validation and API Integration
+    const registrationForm = document.getElementById('registration-form');
     if (registrationForm) {
-        registrationForm.addEventListener('submit', function (e) {
+        registrationForm.addEventListener('submit', async function (e) {
+            e.preventDefault();
             let valid = true;
 
-            const email = document.getElementById('assignment-email');
-            const emailError = document.getElementById('assignment-email-error');
+            // Clear previous errors
+            document.querySelectorAll('.auth-error').forEach(el => el.textContent = '');
+
+            const username = document.getElementById('reg-username');
+            const email = document.getElementById('reg-email');
+            const password = document.getElementById('reg-password');
+            const confirmPassword = document.getElementById('reg-confirm-password');
+            const termsCheck = document.getElementById('termsCheck');
+
+            // Validation
+            const usernameError = document.getElementById('reg-username-error');
+            if (!username.value.trim()) {
+                usernameError.textContent = 'Username is required.';
+                valid = false;
+            } else if (username.value.trim().length < 3) {
+                usernameError.textContent = 'Username must be at least 3 characters long.';
+                valid = false;
+            } else if (username.value.trim().length > 30) {
+                usernameError.textContent = 'Username cannot exceed 30 characters.';
+                valid = false;
+            } else {
+                usernameError.textContent = '';
+            }
+
+            const emailError = document.getElementById('reg-email-error');
             const emailPattern = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
             if (!email.value) {
                 emailError.textContent = 'Email is required.';
@@ -164,8 +332,7 @@ document.addEventListener('DOMContentLoaded', function () {
                 emailError.textContent = '';
             }
 
-            const password = document.getElementById('assignment-password');
-            const passwordError = document.getElementById('assignment-password-error');
+            const passwordError = document.getElementById('reg-password-error');
             if (!password.value) {
                 passwordError.textContent = 'Password is required.';
                 valid = false;
@@ -176,8 +343,7 @@ document.addEventListener('DOMContentLoaded', function () {
                 passwordError.textContent = '';
             }
 
-            const confirmPassword = document.getElementById('assignment-confirm-password');
-            const confirmPasswordError = document.getElementById('assignment-confirm-password-error');
+            const confirmPasswordError = document.getElementById('reg-confirm-password-error');
             if (!confirmPassword.value) {
                 confirmPasswordError.textContent = 'Please confirm your password.';
                 valid = false;
@@ -188,22 +354,171 @@ document.addEventListener('DOMContentLoaded', function () {
                 confirmPasswordError.textContent = '';
             }
 
+            if (!termsCheck.checked) {
+                alert('You must agree to the Terms and Privacy Policy');
+                valid = false;
+            }
+
             if (!valid) {
-                e.preventDefault();
+                return;
+            }
+
+            // Submit to backend API
+            const submitBtn = document.getElementById('register-submit-btn');
+            const originalText = submitBtn.textContent;
+            submitBtn.disabled = true;
+            submitBtn.textContent = 'Creating Account...';
+
+            try {
+                console.log('Sending registration request:', {
+                    username: username.value.trim(),
+                    email: email.value.trim(),
+                    password: password.value
+                });
+
+                const response = await fetch('/api/users/register', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        username: username.value.trim(),
+                        email: email.value.trim(),
+                        password: password.value
+                    })
+                });
+
+                const data = await response.json();
+                console.log('Registration response:', data);
+
+                if (data.success) {
+                    // Store JWT token
+                    localStorage.setItem('authToken', data.data.token);
+                    localStorage.setItem('user', JSON.stringify(data.data.user));
+                    
+                    // Update UI
+                    window.authManager.updateAuthUI();
+                    
+                    // Show success message
+                    alert('Registration successful! You are now logged in.');
+                    
+                    // Redirect to home page
+                    window.location.href = 'index.html';
+                } else {
+                    // Use error handler for better error display
+                    const error = new Error(data.message || 'Registration failed');
+                    error.response = { status: response.status, data: data };
+                    handleApiError(error, 'registration');
+                }
+            } catch (error) {
+                handleApiError(error, 'registration');
+            } finally {
+                submitBtn.disabled = false;
+                submitBtn.textContent = originalText;
+            }
+        });
+    }
+
+    // Login Form API Integration
+    const loginForm = document.getElementById('login-form');
+    if (loginForm) {
+        loginForm.addEventListener('submit', async function (e) {
+            e.preventDefault();
+            let valid = true;
+
+            // Clear previous errors
+            document.querySelectorAll('.auth-error').forEach(el => el.textContent = '');
+
+            const email = document.getElementById('login-email');
+            const password = document.getElementById('login-password');
+
+            // Validation
+            const emailError = document.getElementById('login-email-error');
+            const emailPattern = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+            if (!email.value) {
+                emailError.textContent = 'Email is required.';
+                valid = false;
+            } else if (!emailPattern.test(email.value)) {
+                emailError.textContent = 'Enter a valid email address.';
+                valid = false;
             } else {
-                alert("Successfully registered");
+                emailError.textContent = '';
+            }
+
+            const passwordError = document.getElementById('login-password-error');
+            if (!password.value) {
+                passwordError.textContent = 'Password is required.';
+                valid = false;
+            } else {
+                passwordError.textContent = '';
+            }
+
+            if (!valid) {
+                return;
+            }
+
+            // Submit to backend API
+            const submitBtn = document.getElementById('login-submit-btn');
+            const originalText = submitBtn.textContent;
+            submitBtn.disabled = true;
+            submitBtn.textContent = 'Logging In...';
+
+            try {
+                console.log('Sending login request:', {
+                    email: email.value.trim(),
+                    password: password.value
+                });
+
+                const response = await fetch('/api/users/login', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        email: email.value.trim(),
+                        password: password.value
+                    })
+                });
+
+                const data = await response.json();
+                console.log('Login response:', data);
+
+                if (data.success) {
+                    // Store JWT token
+                    localStorage.setItem('authToken', data.data.token);
+                    localStorage.setItem('user', JSON.stringify(data.data.user));
+                    
+                    // Update UI
+                    window.authManager.updateAuthUI();
+                    
+                    // Show success message
+                    alert('Login successful!');
+                    
+                    // Redirect to home page
+                    window.location.href = 'index.html';
+                } else {
+                    // Use error handler for better error display
+                    const error = new Error(data.message || 'Login failed');
+                    error.response = { status: response.status, data: data };
+                    handleApiError(error, 'login');
+                }
+            } catch (error) {
+                handleApiError(error, 'login');
+            } finally {
+                submitBtn.disabled = false;
+                submitBtn.textContent = originalText;
             }
         });
     }
 
     // Registration UX enhancements: password toggles and strength meter
     (function () {
-        const pw = document.getElementById('assignment-password');
-        const cpw = document.getElementById('assignment-confirm-password');
-        const togglePw = document.getElementById('toggle-password');
-        const toggleCpw = document.getElementById('toggle-confirm-password');
-        const bar = document.getElementById('assignment-password-strength-bar');
-        const label = document.getElementById('assignment-password-strength-text');
+        const pw = document.getElementById('reg-password');
+        const cpw = document.getElementById('reg-confirm-password');
+        const togglePw = document.getElementById('toggle-reg-password');
+        const toggleCpw = document.getElementById('toggle-reg-confirm-password');
+        const bar = document.getElementById('reg-password-strength-bar');
+        const label = document.getElementById('reg-password-strength-text');
 
         function updateStrength(value) {
             if (!bar || !label) return;
@@ -241,6 +556,20 @@ document.addEventListener('DOMContentLoaded', function () {
 
         toggleVisibility(pw, togglePw);
         toggleVisibility(cpw, toggleCpw);
+    })();
+
+    // Login password toggle
+    (function () {
+        const loginPw = document.getElementById('login-password');
+        const toggleLoginPw = document.getElementById('toggle-login-password');
+        
+        if (loginPw && toggleLoginPw) {
+            toggleLoginPw.addEventListener('click', function () {
+                const isText = loginPw.type === 'text';
+                loginPw.type = isText ? 'password' : 'text';
+                this.textContent = isText ? 'Show' : 'Hide';
+            });
+        }
     })();
 
     // Accordion
