@@ -62,6 +62,45 @@
             </div>
         </div>
 
+        <div id="news-auth" class="alert alert-secondary d-flex flex-wrap align-items-center justify-content-between gap-3">
+            <div>
+                <strong id="news-auth-status">Not logged in</strong>
+                <div id="news-auth-meta" class="small text-muted">Login to manage news</div>
+            </div>
+            <div class="d-flex gap-2">
+                <a id="news-login-link" class="btn btn-sm btn-outline-primary" href="register.html">Login</a>
+                <button id="news-logout-btn" class="btn btn-sm btn-outline-warning d-none" type="button">Logout</button>
+            </div>
+        </div>
+
+        <div id="news-auth-hint" class="alert alert-info">
+            Login as author or admin to create, edit, and delete news.
+        </div>
+
+        <div id="news-admin" class="card news-bootstrap-card mb-4 d-none">
+            <div class="card-body">
+                <h2 class="h5 text-gold mb-3">Create News</h2>
+                <form id="news-create-form">
+                    <div class="mb-3">
+                        <label for="news-title" class="form-label">Title</label>
+                        <input type="text" class="form-control" id="news-title" maxlength="200" required>
+                    </div>
+                    <div class="mb-3">
+                        <label for="news-game" class="form-label">Game</label>
+                        <input type="text" class="form-control" id="news-game" maxlength="100" required>
+                    </div>
+                    <div class="mb-3">
+                        <label for="news-content" class="form-label">Content</label>
+                        <textarea class="form-control" id="news-content" rows="5" minlength="10" required></textarea>
+                    </div>
+                    <div class="d-flex gap-2">
+                        <button type="submit" class="btn btn-primary">Publish News</button>
+                        <button type="reset" class="btn btn-outline-secondary">Clear</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+
         <div class="row g-4" id="news-list"></div>
 
         <div id="news-empty" class="text-center text-muted mt-4" style="display:none;">
@@ -76,6 +115,37 @@
         </div>
     </div>
 </main>
+
+<div class="modal fade" id="newsEditModal" tabindex="-1" aria-hidden="true" aria-labelledby="newsEditTitle">
+    <div class="modal-dialog modal-lg modal-dialog-centered">
+        <div class="modal-content">
+            <form id="news-edit-form">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="newsEditTitle">Edit News</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label for="news-edit-title" class="form-label">Title</label>
+                        <input type="text" class="form-control" id="news-edit-title" maxlength="200" required>
+                    </div>
+                    <div class="mb-3">
+                        <label for="news-edit-game" class="form-label">Game</label>
+                        <input type="text" class="form-control" id="news-edit-game" maxlength="100" required>
+                    </div>
+                    <div class="mb-3">
+                        <label for="news-edit-content" class="form-label">Content</label>
+                        <textarea class="form-control" id="news-edit-content" rows="5" minlength="10" required></textarea>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="submit" class="btn btn-primary">Save Changes</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
 
 <footer class="mt-5 py-4">
     <div class="container">

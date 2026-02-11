@@ -1,4 +1,34 @@
 window.APIKEY='db3143cadbd24592b354b98d1ce81244';
+
+function getApiBase() {
+    return window.location.protocol === 'file:' ? 'http://localhost:8080' : '';
+}
+
+function getStoredAuth() {
+    const token = localStorage.getItem('gm.token') || '';
+    let user = null;
+    try {
+        user = JSON.parse(localStorage.getItem('gm.user') || 'null');
+    } catch (e) {
+        user = null;
+    }
+    return { token, user };
+}
+
+function setStoredAuth(token, user) {
+    if (token) localStorage.setItem('gm.token', token);
+    if (user) localStorage.setItem('gm.user', JSON.stringify(user));
+}
+
+function clearStoredAuth() {
+    localStorage.removeItem('gm.token');
+    localStorage.removeItem('gm.user');
+}
+
+function getAuthHeaders() {
+    const auth = getStoredAuth();
+    return auth.token ? { Authorization: `Bearer ${auth.token}` } : {};
+}
 // Assignment Demo JavaScript (unique selectors)
 if (window.jQuery) $(document).ready(function () {
     console.log("jQuery is ready!");
@@ -148,8 +178,18 @@ document.addEventListener('DOMContentLoaded', function () {
     // Form Validation
     const registrationForm = document.getElementById('assignment-registration-form');
     if (registrationForm) {
-        registrationForm.addEventListener('submit', function (e) {
+        registrationForm.addEventListener('submit', async function (e) {
+            e.preventDefault();
             let valid = true;
+
+            const name = document.getElementById('assignment-name');
+            const nameError = document.getElementById('assignment-name-error');
+            if (!name || !name.value.trim()) {
+                if (nameError) nameError.textContent = 'Name is required.';
+                valid = false;
+            } else if (nameError) {
+                nameError.textContent = '';
+            }
 
             const email = document.getElementById('assignment-email');
             const emailError = document.getElementById('assignment-email-error');
@@ -189,9 +229,96 @@ document.addEventListener('DOMContentLoaded', function () {
             }
 
             if (!valid) {
-                e.preventDefault();
+                return;
+            }
+
+            const submitBtn = document.getElementById('register-submit-btn');
+            if (submitBtn) submitBtn.disabled = true;
+
+            try {
+                const payload = {
+                    username: name.value.trim(),
+                    email: email.value.trim(),
+                    password: password.value
+                };
+                const res = await fetch(`${getApiBase()}/api/users/register`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload)
+                });
+                const data = await res.json();
+                if (!res.ok || !data.success) {
+                    throw new Error(data.message || 'Registration failed');
+                }
+                setStoredAuth(data.data?.token, data.data?.user);
+                showNotification('Registration successful', 'success');
+                registrationForm.reset();
+                window.location.href = 'news.html';
+            } catch (err) {
+                showNotification(err.message || 'Registration failed', 'error');
+            } finally {
+                if (submitBtn) submitBtn.disabled = false;
+            }
+        });
+    }
+
+    const loginForm = document.getElementById('assignment-login-form');
+    if (loginForm) {
+        loginForm.addEventListener('submit', async function (e) {
+            e.preventDefault();
+            let valid = true;
+
+            const email = document.getElementById('login-email');
+            const emailError = document.getElementById('login-email-error');
+            const emailPattern = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+            if (!email.value) {
+                emailError.textContent = 'Email is required.';
+                valid = false;
+            } else if (!emailPattern.test(email.value)) {
+                emailError.textContent = 'Enter a valid email address.';
+                valid = false;
             } else {
-                alert("Successfully registered");
+                emailError.textContent = '';
+            }
+
+            const password = document.getElementById('login-password');
+            const passwordError = document.getElementById('login-password-error');
+            if (!password.value) {
+                passwordError.textContent = 'Password is required.';
+                valid = false;
+            } else {
+                passwordError.textContent = '';
+            }
+
+            if (!valid) {
+                return;
+            }
+
+            const submitBtn = document.getElementById('login-submit-btn');
+            if (submitBtn) submitBtn.disabled = true;
+
+            try {
+                const payload = {
+                    email: email.value.trim(),
+                    password: password.value
+                };
+                const res = await fetch(`${getApiBase()}/api/users/login`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload)
+                });
+                const data = await res.json();
+                if (!res.ok || !data.success) {
+                    throw new Error(data.message || 'Login failed');
+                }
+                setStoredAuth(data.data?.token, data.data?.user);
+                showNotification('Login successful', 'success');
+                loginForm.reset();
+                window.location.href = 'news.html';
+            } catch (err) {
+                showNotification(err.message || 'Login failed', 'error');
+            } finally {
+                if (submitBtn) submitBtn.disabled = false;
             }
         });
     }
@@ -241,6 +368,9 @@ document.addEventListener('DOMContentLoaded', function () {
 
         toggleVisibility(pw, togglePw);
         toggleVisibility(cpw, toggleCpw);
+        const loginPw = document.getElementById('login-password');
+        const toggleLoginPw = document.getElementById('toggle-login-password');
+        toggleVisibility(loginPw, toggleLoginPw);
     })();
 
     // Accordion
@@ -2088,7 +2218,8 @@ function triggerConfetti() {
 // Utility function for notifications
 function showNotification(message, type = 'info') {
     const notification = document.createElement('div');
-    notification.className = `alert alert-${type === 'success' ? 'success' : 'info'} alert-dismissible fade show position-fixed`;
+    const alertType = type === 'success' ? 'success' : (type === 'error' || type === 'danger') ? 'danger' : 'info';
+    notification.className = `alert alert-${alertType} alert-dismissible fade show position-fixed`;
     notification.style.cssText = 'top: 20px; right: 20px; z-index: 9999; min-width: 300px;';
     notification.innerHTML = `
             ${message}
@@ -2142,7 +2273,7 @@ function lazyLoad() {
 $(window).on('scroll resize', lazyLoad);
 lazyLoad();
 
-// News page: fetch and render news cards from backend
+// News page: fetch and render news cards from backend + CRUD actions
 (function () {
     const listEl = document.getElementById('news-list');
     if (!listEl) return;
@@ -2152,11 +2283,65 @@ lazyLoad();
     const errorEl = document.getElementById('news-error');
     const emptyEl = document.getElementById('news-empty');
 
+    const authStatus = document.getElementById('news-auth-status');
+    const authMeta = document.getElementById('news-auth-meta');
+    const loginLink = document.getElementById('news-login-link');
+    const logoutBtn = document.getElementById('news-logout-btn');
+    const adminCard = document.getElementById('news-admin');
+    const authHint = document.getElementById('news-auth-hint');
+
+    const createForm = document.getElementById('news-create-form');
+    const createTitle = document.getElementById('news-title');
+    const createGame = document.getElementById('news-game');
+    const createContent = document.getElementById('news-content');
+
+    const editModalEl = document.getElementById('newsEditModal');
+    const editForm = document.getElementById('news-edit-form');
+    const editTitle = document.getElementById('news-edit-title');
+    const editGame = document.getElementById('news-edit-game');
+    const editContent = document.getElementById('news-edit-content');
+
+    let editModal = null;
+    if (editModalEl && window.bootstrap) {
+        editModal = new bootstrap.Modal(editModalEl);
+    }
+
     let page = 1;
     const limit = 9;
     let totalPages = null;
     let isLoading = false;
-    const baseUrl = window.location.protocol === 'file:' ? 'http://localhost:8080' : '';
+    const baseUrl = getApiBase();
+    const newsCache = new Map();
+
+    function isManager() {
+        const auth = getStoredAuth();
+        return !!auth.token && !!auth.user && (auth.user.role === 'author' || auth.user.role === 'admin');
+    }
+
+    function canEditItem(item) {
+        const auth = getStoredAuth();
+        if (!auth.token || !auth.user) return false;
+        if (auth.user.role === 'admin') return true;
+        const authorId = item?.author?._id || item?.author?.id || item?.author;
+        return auth.user.role === 'author' && authorId && auth.user.id === authorId;
+    }
+
+    function updateAuthUI() {
+        const auth = getStoredAuth();
+        const isLoggedIn = !!auth.token && !!auth.user;
+        const canManage = isLoggedIn && (auth.user.role === 'author' || auth.user.role === 'admin');
+
+        if (authStatus) {
+            authStatus.textContent = isLoggedIn ? `Logged in as ${auth.user.username || 'User'}` : 'Not logged in';
+        }
+        if (authMeta) {
+            authMeta.textContent = isLoggedIn ? `Role: ${auth.user.role}` : 'Login to manage news';
+        }
+        if (loginLink) loginLink.classList.toggle('d-none', isLoggedIn);
+        if (logoutBtn) logoutBtn.classList.toggle('d-none', !isLoggedIn);
+        if (adminCard) adminCard.classList.toggle('d-none', !canManage);
+        if (authHint) authHint.style.display = canManage ? 'none' : 'block';
+    }
 
     function setLoading(value) {
         isLoading = value;
@@ -2188,7 +2373,7 @@ lazyLoad();
         const value = (text || '').toString().trim();
         if (!value) return 'No content available.';
         if (value.length <= maxLength) return value;
-        return value.slice(0, Math.max(0, maxLength - 1)).trim() + '…';
+        return value.slice(0, Math.max(0, maxLength - 1)).trim() + '...';
     }
 
     function buildNewsCard(item) {
@@ -2197,6 +2382,7 @@ lazyLoad();
 
         const card = document.createElement('div');
         card.className = 'card h-100 news-bootstrap-card';
+        if (item?._id) card.dataset.newsId = item._id;
 
         const body = document.createElement('div');
         body.className = 'card-body d-flex flex-column';
@@ -2244,8 +2430,32 @@ lazyLoad();
             footer.appendChild(meta);
         }
 
+        let actions = null;
+        if (canEditItem(item)) {
+            actions = document.createElement('div');
+            actions.className = 'd-flex gap-2 mt-3';
+
+            const editBtn = document.createElement('button');
+            editBtn.type = 'button';
+            editBtn.className = 'btn btn-sm btn-outline-warning';
+            editBtn.textContent = 'Edit';
+            editBtn.dataset.action = 'news-edit';
+            editBtn.dataset.id = item._id;
+
+            const deleteBtn = document.createElement('button');
+            deleteBtn.type = 'button';
+            deleteBtn.className = 'btn btn-sm btn-outline-danger';
+            deleteBtn.textContent = 'Delete';
+            deleteBtn.dataset.action = 'news-delete';
+            deleteBtn.dataset.id = item._id;
+
+            actions.appendChild(editBtn);
+            actions.appendChild(deleteBtn);
+        }
+
         body.appendChild(title);
         body.appendChild(text);
+        if (actions) body.appendChild(actions);
         body.appendChild(footer);
         card.appendChild(body);
         col.appendChild(card);
@@ -2253,11 +2463,21 @@ lazyLoad();
         return col;
     }
 
+    function openEditModal(item) {
+        if (!editForm || !editTitle || !editGame || !editContent) return;
+        editForm.dataset.newsId = item._id;
+        editTitle.value = item.title || '';
+        editGame.value = item.game || '';
+        editContent.value = item.content || '';
+        if (editModal) editModal.show();
+    }
+
     async function loadNews(reset = false) {
         if (isLoading) return;
         if (reset) {
             page = 1;
             totalPages = null;
+            newsCache.clear();
             listEl.innerHTML = '';
             if (emptyEl) emptyEl.style.display = 'none';
         }
@@ -2287,6 +2507,7 @@ lazyLoad();
             }
 
             items.forEach((item) => {
+                if (item?._id) newsCache.set(item._id, item);
                 listEl.appendChild(buildNewsCard(item));
             });
 
@@ -2300,6 +2521,156 @@ lazyLoad();
         }
     }
 
+    if (createForm) {
+        createForm.addEventListener('submit', async function (e) {
+            e.preventDefault();
+            if (!isManager()) {
+                setError('Login as author or admin to create news.');
+                return;
+            }
+
+            const title = createTitle?.value.trim();
+            const game = createGame?.value.trim();
+            const content = createContent?.value.trim();
+            if (!title || !game || !content) {
+                setError('Title, game, and content are required.');
+                return;
+            }
+
+            setError('');
+            try {
+                const res = await fetch(`${baseUrl}/api/news`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        ...getAuthHeaders()
+                    },
+                    body: JSON.stringify({ title, game, content })
+                });
+                const data = await res.json();
+                if (!res.ok || !data.success) {
+                    throw new Error(data.message || 'Failed to create news');
+                }
+
+                const created = data.data;
+                let published = created;
+                try {
+                    const pubRes = await fetch(`${baseUrl}/api/news/${created._id}/publish`, {
+                        method: 'PUT',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            ...getAuthHeaders()
+                        }
+                    });
+                    const pubPayload = await pubRes.json();
+                    if (!pubRes.ok || !pubPayload.success) {
+                        throw new Error(pubPayload.message || 'Failed to publish news');
+                    }
+                    published = pubPayload.data || created;
+                    showNotification('News published', 'success');
+                } catch (err) {
+                    showNotification(`Created but not published: ${err.message}`, 'error');
+                }
+
+                if (createForm) createForm.reset();
+                if (published?._id) newsCache.set(published._id, published);
+                loadNews(true);
+            } catch (err) {
+                setError(err.message || 'Failed to create news');
+            }
+        });
+    }
+
+    if (editForm) {
+        editForm.addEventListener('submit', async function (e) {
+            e.preventDefault();
+            if (!isManager()) {
+                setError('Login as author or admin to update news.');
+                return;
+            }
+
+            const newsId = editForm.dataset.newsId;
+            if (!newsId) return;
+
+            const title = editTitle?.value.trim();
+            const game = editGame?.value.trim();
+            const content = editContent?.value.trim();
+            if (!title || !game || !content) {
+                setError('Title, game, and content are required.');
+                return;
+            }
+
+            setError('');
+            try {
+                const res = await fetch(`${baseUrl}/api/news/${newsId}`, {
+                    method: 'PUT',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        ...getAuthHeaders()
+                    },
+                    body: JSON.stringify({ title, game, content })
+                });
+                const data = await res.json();
+                if (!res.ok || !data.success) {
+                    throw new Error(data.message || 'Failed to update news');
+                }
+
+                const updated = data.data || { _id: newsId, title, game, content };
+                newsCache.set(newsId, { ...newsCache.get(newsId), ...updated });
+                if (editModal) editModal.hide();
+                loadNews(true);
+                showNotification('News updated', 'success');
+            } catch (err) {
+                setError(err.message || 'Failed to update news');
+            }
+        });
+    }
+
+    listEl.addEventListener('click', async function (e) {
+        const btn = e.target.closest('button[data-action]');
+        if (!btn) return;
+        const action = btn.dataset.action;
+        const newsId = btn.dataset.id;
+        if (!newsId) return;
+
+        if (action === 'news-edit') {
+            const item = newsCache.get(newsId);
+            if (item) openEditModal(item);
+        }
+
+        if (action === 'news-delete') {
+            if (!isManager()) {
+                setError('Login as author or admin to delete news.');
+                return;
+            }
+            if (!window.confirm('Delete this news item?')) return;
+
+            setError('');
+            try {
+                const res = await fetch(`${baseUrl}/api/news/${newsId}`, {
+                    method: 'DELETE',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        ...getAuthHeaders()
+                    }
+                });
+                const data = await res.json();
+                if (!res.ok || !data.success) {
+                    throw new Error(data.message || 'Failed to delete news');
+                }
+                const card = listEl.querySelector(`[data-news-id="${newsId}"]`);
+                if (card && card.parentElement) card.parentElement.remove();
+                newsCache.delete(newsId);
+                showNotification('News deleted', 'success');
+                if (listEl.children.length === 0 && emptyEl) {
+                    emptyEl.style.display = 'block';
+                }
+            } catch (err) {
+                setError(err.message || 'Failed to delete news');
+            }
+        }
+    });
+
     if (loadMoreBtn) {
         loadMoreBtn.addEventListener('click', function () {
             if (totalPages && page >= totalPages) return;
@@ -2308,5 +2679,14 @@ lazyLoad();
         });
     }
 
+    if (logoutBtn) {
+        logoutBtn.addEventListener('click', function () {
+            clearStoredAuth();
+            updateAuthUI();
+            loadNews(true);
+        });
+    }
+
+    updateAuthUI();
     loadNews(true);
 })();
