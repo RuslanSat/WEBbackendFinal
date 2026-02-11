@@ -3,30 +3,22 @@ const router = express.Router();
 const User = require('../models/User');
 const auth = require('../middleware/auth');
 const jwt = require('jsonwebtoken');
+const validate = require('../middleware/validate');
+const AppError = require('../utils/AppError');
+const userValidation = require('../validation/users');
 
 // POST /api/users/register - Register new user
-router.post('/register', async (req, res) => {
+router.post('/register', validate({ body: userValidation.register }), async (req, res, next) => {
   try {
     const { username, email, password } = req.body;
-    
-    // Validate required fields
-    if (!username || !email || !password) {
-      return res.status(400).json({
-        success: false,
-        message: 'Username, email, and password are required'
-      });
-    }
-    
+
     // Check if user already exists
     const existingUser = await User.findOne({
       $or: [{ email }, { username }]
     });
     
     if (existingUser) {
-      return res.status(400).json({
-        success: false,
-        message: 'User with this email or username already exists'
-      });
+      return next(new AppError('User with this email or username already exists', 400));
     }
     
     // Create new user
@@ -60,44 +52,27 @@ router.post('/register', async (req, res) => {
     });
   } catch (error) {
     console.error('Error registering user:', error);
-    res.status(500).json({
-      success: false,
-      message: 'Server error while registering user'
-    });
+    return next(error);
   }
 });
 
 // POST /api/users/login - Login user
-router.post('/login', async (req, res) => {
+router.post('/login', validate({ body: userValidation.login }), async (req, res, next) => {
   try {
     const { email, password } = req.body;
-    
-    // Validate required fields
-    if (!email || !password) {
-      return res.status(400).json({
-        success: false,
-        message: 'Email and password are required'
-      });
-    }
-    
+
     // Find user by email
-    const user = await User.findOne({ email });
+    const user = await User.findOne({ email }).select('+password');
     
     if (!user) {
-      return res.status(401).json({
-        success: false,
-        message: 'Invalid credentials'
-      });
+      return next(new AppError('Invalid credentials', 401));
     }
     
     // Check password
     const isMatch = await user.comparePassword(password);
     
     if (!isMatch) {
-      return res.status(401).json({
-        success: false,
-        message: 'Invalid credentials'
-      });
+      return next(new AppError('Invalid credentials', 401));
     }
     
     // Generate JWT token
@@ -122,42 +97,15 @@ router.post('/login', async (req, res) => {
     });
   } catch (error) {
     console.error('Error logging in user:', error);
-    res.status(500).json({
-      success: false,
-      message: 'Server error while logging in'
-    });
+    return next(error);
   }
 });
 
 // PUT /api/users/profile - Update user profile
-router.put('/profile', auth, async (req, res) => {
+router.put('/profile', auth, validate({ body: userValidation.updateProfile }), async (req, res, next) => {
   try {
     const { username, email } = req.body;
     const userId = req.user.id;
-    
-    // Validate input data
-    if (!username && !email) {
-      return res.status(400).json({
-        success: false,
-        message: 'At least username or email must be provided'
-      });
-    }
-    
-    // Validate email format if provided
-    if (email && !/^\w+([.-]?\w+)*@\w+([.-]?\w+)*(\.\w{2,3})+$/.test(email)) {
-      return res.status(400).json({
-        success: false,
-        message: 'Please enter a valid email'
-      });
-    }
-    
-    // Validate username length if provided
-    if (username && (username.length < 3 || username.length > 30)) {
-      return res.status(400).json({
-        success: false,
-        message: 'Username must be between 3 and 30 characters'
-      });
-    }
     
     // Check if username or email already exists (excluding current user)
     const existingUser = await User.findOne({
@@ -169,11 +117,12 @@ router.put('/profile', auth, async (req, res) => {
     });
     
     if (existingUser) {
-      return res.status(400).json({
-        success: false,
-        message: existingUser.username === username ? 
-          'Username already exists' : 'Email already exists'
-      });
+      return next(
+        new AppError(
+          existingUser.username === username ? 'Username already exists' : 'Email already exists',
+          400
+        )
+      );
     }
     
     // Update user info
@@ -188,10 +137,7 @@ router.put('/profile', auth, async (req, res) => {
     );
     
     if (!updatedUser) {
-      return res.status(404).json({
-        success: false,
-        message: 'User not found'
-      });
+      return next(new AppError('User not found', 404));
     }
     
     // Return updated profile without password
@@ -209,81 +155,63 @@ router.put('/profile', auth, async (req, res) => {
     });
   } catch (error) {
     console.error('Error updating profile:', error);
-    res.status(500).json({
-      success: false,
-      message: 'Server error while updating profile'
-    });
+    return next(error);
   }
 });
 
 // PUT /api/users/:id/role - Update user role (admin only)
-router.put('/:id/role', auth, async (req, res) => {
-  try {
-    const { role } = req.body;
-    const targetUserId = req.params.id;
-    
-    // Check if requester is admin
-    if (req.user.role !== 'admin') {
-      return res.status(403).json({
-        success: false,
-        message: 'Only admins can update user roles'
-      });
-    }
-    
-    // Validate role
-    if (!['user', 'author', 'admin'].includes(role)) {
-      return res.status(400).json({
-        success: false,
-        message: 'Invalid role. Must be: user, author, or admin'
-      });
-    }
-    
-    // Update user role
-    const updatedUser = await User.findByIdAndUpdate(
-      targetUserId,
-      { role },
-      { new: true, runValidators: true }
-    ).select('-password');
-    
-    if (!updatedUser) {
-      return res.status(404).json({
-        success: false,
-        message: 'User not found'
-      });
-    }
-    
-    res.status(200).json({
-      success: true,
-      message: 'User role updated successfully',
-      data: {
-        id: updatedUser._id,
-        username: updatedUser.username,
-        email: updatedUser.email,
-        role: updatedUser.role,
-        createdAt: updatedUser.createdAt,
-        updatedAt: updatedUser.updatedAt
+router.put(
+  '/:id/role',
+  auth,
+  validate({ params: userValidation.userIdParam, body: userValidation.updateRole }),
+  async (req, res, next) => {
+    try {
+      const { role } = req.body;
+      const targetUserId = req.params.id;
+      
+      // Check if requester is admin
+      if (req.user.role !== 'admin') {
+        return next(new AppError('Only admins can update user roles', 403));
       }
-    });
-  } catch (error) {
-    console.error('Error updating user role:', error);
-    res.status(500).json({
-      success: false,
-      message: 'Server error while updating user role'
-    });
+      
+      // Update user role
+      const updatedUser = await User.findByIdAndUpdate(
+        targetUserId,
+        { role },
+        { new: true, runValidators: true }
+      ).select('-password');
+      
+      if (!updatedUser) {
+        return next(new AppError('User not found', 404));
+      }
+      
+      res.status(200).json({
+        success: true,
+        message: 'User role updated successfully',
+        data: {
+          id: updatedUser._id,
+          username: updatedUser.username,
+          email: updatedUser.email,
+          role: updatedUser.role,
+          createdAt: updatedUser.createdAt,
+          updatedAt: updatedUser.updatedAt
+        }
+      });
+    } catch (error) {
+      console.error('Error updating user role:', error);
+      return next(error);
+    }
   }
-});
+);
 
 // GET /api/users/profile - Fetch logged-in user profile
-router.get('/profile', auth, async (req, res) => {
+router.get('/profile', auth, async (req, res, next) => {
   try {
     // Find user by ID (from auth middleware)
     const user = await User.findById(req.user.id);
     
     if (!user) {
-      return res.status(404).json({
-        success: false,
-        message: 'User not found'
-      });
+      return next(new AppError('User not found', 404));
     }
 
     // Return user profile without password
@@ -300,10 +228,7 @@ router.get('/profile', auth, async (req, res) => {
     });
   } catch (error) {
     console.error('Error fetching user profile:', error);
-    res.status(500).json({
-      success: false,
-      message: 'Server error while fetching profile'
-    });
+    return next(error);
   }
 });
 

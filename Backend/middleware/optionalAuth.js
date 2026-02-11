@@ -2,32 +2,28 @@ const jwt = require('jsonwebtoken');
 const User = require('../models/User');
 const AppError = require('../utils/AppError');
 
-// Middleware to authenticate user using JWT token
-const auth = async (req, res, next) => {
+const optionalAuth = async (req, res, next) => {
   try {
-    // Get token from header
-    const token = req.header('Authorization')?.replace('Bearer ', '');
-
-    if (!token) {
-      return next(new AppError('No token provided, authorization denied', 401));
+    const header = req.header('Authorization');
+    if (!header) {
+      return next();
     }
 
-    // Verify token
-    const decoded = jwt.verify(token, process.env.JWT_SECRET);
+    const token = header.replace('Bearer ', '');
+    if (!token) {
+      return next();
+    }
 
-    // Find user by ID
+    const decoded = jwt.verify(token, process.env.JWT_SECRET);
     const user = await User.findById(decoded.id).select('-password');
 
     if (!user) {
       return next(new AppError('Token is valid but user not found', 401));
     }
 
-    // Add user to request object
     req.user = user;
     return next();
   } catch (error) {
-    console.error('Auth middleware error:', error);
-
     if (error.name === 'JsonWebTokenError') {
       return next(new AppError('Token is not valid', 401));
     }
@@ -40,4 +36,4 @@ const auth = async (req, res, next) => {
   }
 };
 
-module.exports = auth;
+module.exports = optionalAuth;

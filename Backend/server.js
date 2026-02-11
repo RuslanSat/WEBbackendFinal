@@ -2,6 +2,8 @@ const path = require('path');
 require('dotenv').config({ path: path.join(__dirname, '../.env') });
 const express = require('express');
 const mongoose = require('mongoose');
+const notFound = require('./middleware/notFound');
+const errorHandler = require('./middleware/errorHandler');
 
 // Debug: Check if environment variables are loaded
 console.log('MONGODB_URI:', process.env.MONGODB_URI ? 'Loaded' : 'Not loaded');
@@ -38,6 +40,12 @@ app.use('/api/news', require('./routes/news'));
 app.get('/api/health', (req, res) => {
   res.json({ status: 'Server is running', timestamp: new Date().toISOString() });
 });
+
+// Not found handler
+app.use(notFound);
+
+// Centralized error handler
+app.use(errorHandler);
 
 // Start server
 app.listen(PORT, () => {
