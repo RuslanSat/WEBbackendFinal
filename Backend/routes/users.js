@@ -7,13 +7,25 @@ const jwt = require('jsonwebtoken');
 // POST /api/users/register - Register new user
 router.post('/register', async (req, res) => {
   try {
-    const { username, email, password } = req.body;
+    const { username, email, password, role } = req.body;
     
     // Validate required fields
     if (!username || !email || !password) {
       return res.status(400).json({
         success: false,
         message: 'Username, email, and password are required'
+      });
+    }
+    
+    // Set default role if not provided
+    const userRole = role || 'user';
+    
+    // Validate role
+    const validRoles = ['user', 'author', 'admin'];
+    if (!validRoles.includes(userRole)) {
+      return res.status(400).json({
+        success: false,
+        message: 'Invalid role specified'
       });
     }
     
@@ -33,7 +45,8 @@ router.post('/register', async (req, res) => {
     const user = new User({
       username,
       email,
-      password
+      password,
+      role: userRole
     });
     
     await user.save();
