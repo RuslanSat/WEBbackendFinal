@@ -43,7 +43,7 @@ UserSchema.pre('save', async function() {
   // Update timestamp
   this.updatedAt = Date.now();
   
-  // Only hash the password if it has been modified (or is new)
+  // Only hash the password if it has been modified
   if (!this.isModified('password')) return;
   
   // Hash password with cost factor of 12

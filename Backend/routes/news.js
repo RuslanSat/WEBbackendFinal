@@ -3,7 +3,7 @@ const router = express.Router();
 const News = require('../models/News');
 const auth = require('../middleware/auth');
 
-// GET /api/news - Get all published news
+// GET /api/news - Get news
 router.get('/', async (req, res) => {
   try {
     const { page = 1, limit = 10, game } = req.query;
