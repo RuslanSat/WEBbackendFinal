@@ -303,6 +303,7 @@ document.addEventListener('DOMContentLoaded', function () {
             const email = document.getElementById('reg-email');
             const password = document.getElementById('reg-password');
             const confirmPassword = document.getElementById('reg-confirm-password');
+            const role = document.getElementById('reg-role');
             const termsCheck = document.getElementById('termsCheck');
 
             // Validation
@@ -318,6 +319,14 @@ document.addEventListener('DOMContentLoaded', function () {
                 valid = false;
             } else {
                 usernameError.textContent = '';
+            }
+
+            const roleError = document.getElementById('reg-role-error');
+            if (!role.value) {
+                roleError.textContent = 'Please select an account type.';
+                valid = false;
+            } else {
+                roleError.textContent = '';
             }
 
             const emailError = document.getElementById('reg-email-error');
@@ -373,7 +382,8 @@ document.addEventListener('DOMContentLoaded', function () {
                 console.log('Sending registration request:', {
                     username: username.value.trim(),
                     email: email.value.trim(),
-                    password: password.value
+                    password: password.value,
+                    role: role.value
                 });
 
                 const response = await fetch('/api/users/register', {
@@ -384,32 +394,33 @@ document.addEventListener('DOMContentLoaded', function () {
                     body: JSON.stringify({
                         username: username.value.trim(),
                         email: email.value.trim(),
-                        password: password.value
-                    })
+                        password: password.value,
+                        role: role.value
+                    }),
                 });
 
                 const data = await response.json();
-                console.log('Registration response:', data);
 
                 if (data.success) {
                     // Store JWT token
                     localStorage.setItem('authToken', data.data.token);
                     localStorage.setItem('user', JSON.stringify(data.data.user));
-                    
+
                     // Update UI
                     window.authManager.updateAuthUI();
-                    
+
                     // Show success message
                     alert('Registration successful! You are now logged in.');
-                    
+
                     // Redirect to home page
                     window.location.href = 'index.html';
                 } else {
                     // Use error handler for better error display
                     const error = new Error(data.message || 'Registration failed');
                     error.response = { status: response.status, data: data };
-                    handleApiError(error, 'registration');
+                    throw error;
                 }
+
             } catch (error) {
                 handleApiError(error, 'registration');
             } finally {

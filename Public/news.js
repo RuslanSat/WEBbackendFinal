@@ -20,11 +20,13 @@
     authStatus: document.getElementById('auth-status'),
 
     editorModal: document.getElementById('newsEditorModal'),
-    editorTitle: document.getElementById('newsEditorTitle'),
+    editorTitle: document.getElementById('news-editor-title'),
     editorAlert: document.getElementById('news-editor-alert'),
     editorId: document.getElementById('news-editor-id'),
     editorTitleInput: document.getElementById('news-editor-title'),
     editorGameInput: document.getElementById('news-editor-game'),
+    editorAuthorInput: document.getElementById('news-editor-author'),
+    editorAuthorContainer: document.getElementById('news-editor-author-container'),
     editorContentInput: document.getElementById('news-editor-content'),
     editorSave: document.getElementById('news-editor-save'),
     editorPublish: document.getElementById('news-editor-publish'),
@@ -143,7 +145,13 @@
 
     const meta = document.createElement('div');
     meta.className = 'text-muted small mb-2';
-    meta.textContent = formatDate(item.createdAt);
+    
+    // Show author and date
+    let metaText = formatDate(item.createdAt);
+    if (item.author && item.author.username) {
+      metaText = `by ${item.author.username} • ${formatDate(item.createdAt)}`;
+    }
+    meta.textContent = metaText;
 
     const content = document.createElement('div');
     content.className = 'card-text flex-grow-1';
@@ -319,7 +327,9 @@
     hideEditorAlert();
 
     const isNew = !item;
-    const canEdit = canManage();
+    const user = window.authManager ? window.authManager.getUser() : null;
+    const isAuthor = user && item && item.author && item.author._id === user.id;
+    const canEdit = isNew ? canManage() : (isAuthor || canManage());
 
     const modal = bootstrap.Modal.getOrCreateInstance(els.editorModal);
 
@@ -328,9 +338,23 @@
     els.editorGameInput.value = item?.game || '';
     els.editorContentInput.value = item?.content || '';
 
+    // Show author info for existing articles
+    if (item && item.author && item.author.username) {
+      els.editorAuthorContainer.style.display = 'block';
+      els.editorAuthorInput.value = item.author.username;
+    } else {
+      els.editorAuthorContainer.style.display = 'none';
+      els.editorAuthorInput.value = '';
+    }
+
     const isPublished = !!item?.publishedAt;
 
-    els.editorTitle.textContent = isNew ? 'New article' : (canEdit ? 'Manage article' : 'View article');
+    // Update modal title with author info
+    let modalTitle = isNew ? 'New article' : 'View article';
+    if (!isNew && item.author && item.author.username) {
+      modalTitle = `${item.title} by ${item.author.username}`;
+    }
+    els.editorTitle.textContent = modalTitle;
 
     const readonly = !canEdit && !isNew;
     els.editorTitleInput.disabled = readonly;
